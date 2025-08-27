@@ -361,12 +361,12 @@ func formatSimpleMap(m map[string]interface{}) string {
 	}
 	sort.Strings(keys)
 
-	// Отступ для содержимого: используем формулу (depth+1)*4-2
-	contentIndent := strings.Repeat(" ", 6) // (1+1)*4-2 = 6
+	// Отступ для содержимого: 12 пробелов (как в ожидаемом результате)
+	contentIndent := "            " // 12 пробелов
 	for i, key := range keys {
 		value := m[key]
 		if isMap(value) {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), 1)))
+			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), 3)))
 		} else {
 			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatValue(value)))
 		}
@@ -375,7 +375,8 @@ func formatSimpleMap(m map[string]interface{}) string {
 		}
 	}
 
-	result.WriteString("\n    }")
+	// Закрывающая скобка с отступом 8 пробелов (как в ожидаемом результате)
+	result.WriteString("\n        }")
 	return result.String()
 }
 
@@ -395,8 +396,8 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 	}
 	sort.Strings(keys)
 
-	// Отступ для содержимого: используем формулу (depth+1)*4-2
-	contentIndent := strings.Repeat(" ", (depth+1)*4-2)
+	// Отступ для содержимого: используем правильную формулу
+	contentIndent := strings.Repeat(" ", depth*4)
 	for i, key := range keys {
 		value := m[key]
 		if isMap(value) {
@@ -410,7 +411,7 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 	}
 
 	// Закрывающая скобка с правильным отступом
-	result.WriteString(fmt.Sprintf("\n%s}", strings.Repeat(" ", depth*4-2)))
+	result.WriteString(fmt.Sprintf("\n%s}", strings.Repeat(" ", (depth-1)*4)))
 	return result.String()
 }
 
