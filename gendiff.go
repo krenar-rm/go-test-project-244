@@ -1,4 +1,4 @@
-package go_test_project_2
+package code
 
 import (
 	"encoding/json"
