@@ -110,21 +110,8 @@ func parseYAML(content []byte) (map[string]interface{}, error) {
 func buildDiffTree(data1, data2 map[string]interface{}) *Node {
 	root := &Node{Type: NodeTypeRoot, Children: []*Node{}}
 
-	// Получаем все уникальные ключи
-	allKeys := make(map[string]bool)
-	for key := range data1 {
-		allKeys[key] = true
-	}
-	for key := range data2 {
-		allKeys[key] = true
-	}
-
-	// Сортируем ключи для детерминированного вывода
-	keys := make([]string, 0, len(allKeys))
-	for key := range allKeys {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
+	// Получаем все уникальные ключи и сортируем их
+	keys := getUniqueKeys(data1, data2)
 
 	// Обрабатываем каждый ключ
 	for _, key := range keys {
@@ -135,6 +122,24 @@ func buildDiffTree(data1, data2 map[string]interface{}) *Node {
 	}
 
 	return root
+}
+
+// getUniqueKeys возвращает отсортированный список всех уникальных ключей из двух карт
+func getUniqueKeys(data1, data2 map[string]interface{}) []string {
+	allKeys := make(map[string]bool)
+	for key := range data1 {
+		allKeys[key] = true
+	}
+	for key := range data2 {
+		allKeys[key] = true
+	}
+
+	keys := make([]string, 0, len(allKeys))
+	for key := range allKeys {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // processKey обрабатывает отдельный ключ и возвращает узел, представляющий его состояние
@@ -178,33 +183,14 @@ func processExistingKey(key string, value1, value2 interface{}) *Node {
 		childNode.Key = key
 		childNode.Type = NodeTypeNested
 		return childNode
-	} else {
-		// Значения различаются - проверяем, является ли одно картой, а другое нет
-		if isMap(value1) && !isMap(value2) {
-			// value1 это карта, value2 нет - value1 была удалена, value2 была добавлена
-			return &Node{
-				Type:     NodeTypeUpdated,
-				Key:      key,
-				OldValue: value1,
-				NewValue: value2,
-			}
-		} else if !isMap(value1) && isMap(value2) {
-			// value1 не карта, value2 карта - value1 была удалена, value2 была добавлена
-			return &Node{
-				Type:     NodeTypeUpdated,
-				Key:      key,
-				OldValue: value1,
-				NewValue: value2,
-			}
-		} else {
-			// Оба значения примитивные, но разные
-			return &Node{
-				Type:     NodeTypeUpdated,
-				Key:      key,
-				OldValue: value1,
-				NewValue: value2,
-			}
-		}
+	}
+
+	// Значения различаются - возвращаем updated узел (независимо от типов)
+	return &Node{
+		Type:     NodeTypeUpdated,
+		Key:      key,
+		OldValue: value1,
+		NewValue: value2,
 	}
 }
 
@@ -354,18 +340,13 @@ func formatValue(v interface{}) string {
 		return NullValue
 	}
 
-	switch val := v.(type) {
-	case string:
-		// Убираем кавычки для строк в stylish формате
-		return val
-	case bool:
-		return fmt.Sprintf("%t", val)
-	case map[string]interface{}:
+	if m, ok := v.(map[string]interface{}); ok {
 		// Для вложенных объектов создаем простой вывод
-		return formatNestedMap(val)
-	default:
-		return fmt.Sprintf("%v", val)
+		return formatNestedMap(m)
 	}
+
+	// Для всех остальных типов используем обычное форматирование
+	return formatPrimitiveValue(v)
 }
 
 // formatValueForRemovedAdded форматирует значение для удалённых/добавленных узлов
@@ -374,15 +355,22 @@ func formatValueForRemovedAdded(v interface{}, depth int) string {
 		return NullValue
 	}
 
+	if m, ok := v.(map[string]interface{}); ok {
+		// Для удаленных/добавленных объектов используем форматирование с учетом глубины
+		return formatSimpleMapWithDepth(m, depth)
+	}
+
+	// Для всех остальных типов используем обычное форматирование
+	return formatPrimitiveValue(v)
+}
+
+// formatPrimitiveValue форматирует примитивные значения
+func formatPrimitiveValue(v interface{}) string {
 	switch val := v.(type) {
 	case string:
-		// Убираем кавычки для строк в stylish формате
 		return val
 	case bool:
 		return fmt.Sprintf("%t", val)
-	case map[string]interface{}:
-		// Для удаленных/добавленных объектов используем форматирование с учетом глубины
-		return formatSimpleMapWithDepth(val, depth)
 	default:
 		return fmt.Sprintf("%v", val)
 	}
@@ -398,11 +386,7 @@ func formatNestedMap(m map[string]interface{}) string {
 	result.WriteString("{\n")
 
 	// Сортируем ключи для детерминированного вывода
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
+	keys := getSortedKeys(m)
 
 	// Отступ для содержимого: 12 пробелов (как в ожидаемом результате)
 	contentIndent := "            " // 12 пробелов
@@ -433,11 +417,7 @@ func formatNestedMapRecursive(m map[string]interface{}, depth int) string {
 	result.WriteString("{\n")
 
 	// Сортируем ключи для детерминированного вывода
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
+	keys := getSortedKeys(m)
 
 	// Отступ для содержимого: используем правильную формулу
 	contentIndent := strings.Repeat(" ", depth*4)
@@ -469,11 +449,7 @@ func formatSimpleMapWithDepth(m map[string]interface{}, depth int) string {
 	result.WriteString("{\n")
 
 	// Сортируем ключи для детерминированного вывода
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
+	keys := getSortedKeys(m)
 
 	// Отступ для содержимого: зависит от глубины
 	// Глубина 1: 8 пробелов, Глубина 2: 12 пробелов
@@ -513,11 +489,7 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 	result.WriteString("{\n")
 
 	// Сортируем ключи для детерминированного вывода
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
+	keys := getSortedKeys(m)
 
 	// Отступ для содержимого: используем правильную формулу
 	// Для глубины 2: 8 пробелов, для глубины 3: 12 пробелов
@@ -539,6 +511,16 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 	// Закрывающая скобка с правильным отступом
 	result.WriteString(fmt.Sprintf("\n%s}", closingIndent))
 	return result.String()
+}
+
+// getSortedKeys возвращает отсортированные ключи карты
+func getSortedKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // formatPlainValue форматирует значение для plain вывода
