@@ -1,4 +1,4 @@
-package go_test_project_2
+package code
 
 import (
 	"os"
@@ -12,8 +12,14 @@ func TestGenDiff_JSON_Simple(t *testing.T) {
 	// Create temporary test files
 	file1 := createTempFile(t, `{"host":"hexlet.io","timeout":50,"proxy":"123.234.53.22","follow":false}`)
 	file2 := createTempFile(t, `{"timeout":20,"verbose":true,"host":"hexlet.io"}`)
-	defer os.Remove(file1)
-	defer os.Remove(file2)
+	defer func() {
+		if err := os.Remove(file1); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file1, err)
+		}
+		if err := os.Remove(file2); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file2, err)
+		}
+	}()
 
 	// Test stylish format
 	result, err := GenDiff(file1, file2, "stylish")
@@ -21,11 +27,11 @@ func TestGenDiff_JSON_Simple(t *testing.T) {
 
 	// Check that all expected changes are present
 	assert.Contains(t, result, "- follow: false")
-	assert.Contains(t, result, "- proxy: \"123.234.53.22\"")
+	assert.Contains(t, result, "- proxy: 123.234.53.22")
 	assert.Contains(t, result, "- timeout: 50")
 	assert.Contains(t, result, "+ timeout: 20")
 	assert.Contains(t, result, "+ verbose: true")
-	assert.Contains(t, result, "host: \"hexlet.io\"")
+	assert.Contains(t, result, "host: hexlet.io")
 
 	// Test plain format
 	result, err = GenDiff(file1, file2, "plain")
@@ -52,8 +58,14 @@ follow: false`)
 	file2 := createTempYAMLFile(t, `timeout: 20
 verbose: true
 host: hexlet.io`)
-	defer os.Remove(file1)
-	defer os.Remove(file2)
+	defer func() {
+		if err := os.Remove(file1); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file1, err)
+		}
+		if err := os.Remove(file2); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file2, err)
+		}
+	}()
 
 	result, err := GenDiff(file1, file2, "stylish")
 	require.NoError(t, err)
@@ -70,8 +82,14 @@ func TestGenDiff_FileNotFound(t *testing.T) {
 func TestGenDiff_UnsupportedFormat(t *testing.T) {
 	file1 := createTempFile(t, `{"test": "data"}`)
 	file2 := createTempFile(t, `{"test": "data"}`)
-	defer os.Remove(file1)
-	defer os.Remove(file2)
+	defer func() {
+		if err := os.Remove(file1); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file1, err)
+		}
+		if err := os.Remove(file2); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file2, err)
+		}
+	}()
 
 	_, err := GenDiff(file1, file2, "unsupported")
 	assert.Error(t, err)
@@ -81,8 +99,14 @@ func TestGenDiff_UnsupportedFormat(t *testing.T) {
 func TestGenDiff_InvalidJSON(t *testing.T) {
 	file1 := createTempFile(t, `{"invalid": json}`)
 	file2 := createTempFile(t, `{"test": "data"}`)
-	defer os.Remove(file1)
-	defer os.Remove(file2)
+	defer func() {
+		if err := os.Remove(file1); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file1, err)
+		}
+		if err := os.Remove(file2); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file2, err)
+		}
+	}()
 
 	_, err := GenDiff(file1, file2, "stylish")
 	assert.Error(t, err)
@@ -92,8 +116,14 @@ func TestGenDiff_InvalidJSON(t *testing.T) {
 func TestGenDiff_EmptyFiles(t *testing.T) {
 	file1 := createTempFile(t, `{}`)
 	file2 := createTempFile(t, `{}`)
-	defer os.Remove(file1)
-	defer os.Remove(file2)
+	defer func() {
+		if err := os.Remove(file1); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file1, err)
+		}
+		if err := os.Remove(file2); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file2, err)
+		}
+	}()
 
 	result, err := GenDiff(file1, file2, "stylish")
 	require.NoError(t, err)
@@ -126,8 +156,14 @@ func TestGenDiff_NestedStructures(t *testing.T) {
     "abc": 12345
   }
 }`)
-	defer os.Remove(file1)
-	defer os.Remove(file2)
+	defer func() {
+		if err := os.Remove(file1); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file1, err)
+		}
+		if err := os.Remove(file2); err != nil {
+			t.Logf("failed to remove temp file %s: %v", file2, err)
+		}
+	}()
 
 	result, err := GenDiff(file1, file2, "stylish")
 	require.NoError(t, err)
