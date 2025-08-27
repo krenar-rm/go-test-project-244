@@ -1,50 +1,50 @@
 # Gendiff
 
-A Go CLI utility for comparing configuration files and showing differences in various formats.
+Утилита командной строки на Go для сравнения конфигурационных файлов и отображения различий в различных форматах.
 
-## Features
+## Возможности
 
-- **Multiple file formats**: Supports JSON and YAML files
-- **Multiple output formats**: 
-  - `stylish` (default) - Human-readable diff with +/- indicators
-  - `plain` - Simple text descriptions of changes
-  - `json` - Structured JSON output
-- **Recursive comparison**: Handles nested objects and arrays
-- **Cross-platform**: Works on Windows, macOS, and Linux
+- **Множественные форматы файлов**: Поддержка JSON и YAML файлов
+- **Множественные форматы вывода**: 
+  - `stylish` (по умолчанию) - Человекочитаемый diff с индикаторами +/-
+  - `plain` - Простые текстовые описания изменений
+  - `json` - Структурированный JSON вывод
+- **Рекурсивное сравнение**: Обрабатывает вложенные объекты и массивы
+- **Кроссплатформенность**: Работает на Windows, macOS и Linux
 
-## Installation
+## Установка
 
-### Prerequisites
-- Go 1.21 or higher
+### Требования
+- Go 1.21 или выше
 
-### Build from source
+### Сборка из исходников
 ```bash
 git clone <repository-url>
-cd go-test-project-2441
+cd go-test-project-2
 make build
 ```
 
-## Usage
+## Использование
 
-### Basic usage
+### Базовое использование
 ```bash
 ./bin/gendiff file1.json file2.json
 ```
 
-### Specify output format
+### Указание формата вывода
 ```bash
 ./bin/gendiff -f plain file1.json file2.json
 ./bin/gendiff --format json file1.yml file2.yml
 ```
 
-### Help
+### Справка
 ```bash
 ./bin/gendiff --help
 ```
 
-## Examples
+## Примеры
 
-### Input files
+### Входные файлы
 
 **file1.json:**
 ```json
@@ -65,18 +65,18 @@ make build
 }
 ```
 
-### Output formats
+### Форматы вывода
 
-#### Stylish (default)
+#### Stylish (по умолчанию)
 ```bash
 ./bin/gendiff file1.json file2.json
 ```
-Output:
+Вывод:
 ```
 {
   - follow: false
-    host: "hexlet.io"
-  - proxy: "123.234.53.22"
+    host: hexlet.io
+  - proxy: 123.234.53.22
   - timeout: 50
   + timeout: 20
   + verbose: true
@@ -87,7 +87,7 @@ Output:
 ```bash
 ./bin/gendiff -f plain file1.json file2.json
 ```
-Output:
+Вывод:
 ```
 Property 'follow' was removed
 Property 'proxy' was removed
@@ -99,7 +99,7 @@ Property 'verbose' was added with value: true
 ```bash
 ./bin/gendiff -f json file1.json file2.json
 ```
-Output:
+Вывод:
 ```json
 {
   "type": "root",
@@ -134,76 +134,35 @@ Output:
 }
 ```
 
-## Development
+## Разработка
 
-### Project structure
+### Структура проекта
 ```
 .
-├── cmd/gendiff/          # CLI application
-├── internal/             # Internal packages
-├── testdata/             # Test fixtures
-├── gendiff.go            # Main library code
-├── gendiff_test.go       # Tests
-├── Makefile              # Build commands
-└── go.mod                # Go module file
+├── cmd/gendiff/          # CLI приложение
+├── testdata/             # Тестовые фикстуры
+├── gendiff.go            # Основной код библиотеки
+├── gendiff_test.go       # Тесты
+├── Makefile              # Команды сборки
+└── go.mod                # Файл Go модуля
 ```
 
-### Available make targets
+### Доступные make команды
 ```bash
-make build              # Build the binary
-make test               # Run tests
-make test-with-coverage # Run tests with coverage report
-make lint               # Run linter
-make clean              # Clean build artifacts
+make build              # Собрать бинарный файл
+make test               # Запустить тесты
+make lint               # Запустить линтер
+make clean              # Очистить артефакты сборки
+make setup              # Установить зависимости
 ```
 
-### Running tests
+### Запуск тестов
 ```bash
-go test -v              # Run all tests
-go test -cover          # Run tests with coverage
-go test -race           # Run tests with race detection
+go test -v              # Запустить все тесты
+go test -cover          # Запустить тесты с отчетом о покрытии
+go test -race           # Запустить тесты с обнаружением гонок
 ```
 
-## API
+## Лицензия
 
-### Library usage
-```go
-package main
-
-import "code"
-
-func main() {
-    result, err := code.GenDiff("file1.json", "file2.json", "stylish")
-    if err != nil {
-        log.Fatal(err)
-    }
-    fmt.Println(result)
-}
-```
-
-## Supported file formats
-
-- **JSON**: Files with `.json` extension
-- **YAML**: Files with `.yml` or `.yaml` extension
-
-## Error handling
-
-The utility provides clear error messages for common issues:
-- File not found
-- Unsupported file format
-- Invalid JSON/YAML syntax
-- Unsupported output format
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
+Этот проект распространяется под лицензией MIT.
