@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -178,17 +179,36 @@ func processExistingKey(key string, value1, value2 interface{}) *Node {
 		childNode.Type = NodeTypeNested
 		return childNode
 	} else {
-		// Values are different
-		return &Node{
-			Type:     NodeTypeUpdated,
-			Key:      key,
-			OldValue: value1,
-			NewValue: value2,
+		// Values are different - check if one is map and other is not
+		if isMap(value1) && !isMap(value2) {
+			// value1 is map, value2 is not - value1 was removed, value2 was added
+			return &Node{
+				Type:     NodeTypeUpdated,
+				Key:      key,
+				OldValue: value1,
+				NewValue: value2,
+			}
+		} else if !isMap(value1) && isMap(value2) {
+			// value1 is not map, value2 is map - value1 was removed, value2 was added
+			return &Node{
+				Type:     NodeTypeUpdated,
+				Key:      key,
+				OldValue: value1,
+				NewValue: value2,
+			}
+		} else {
+			// Both are primitive values, but different
+			return &Node{
+				Type:     NodeTypeUpdated,
+				Key:      key,
+				OldValue: value1,
+				NewValue: value2,
+			}
 		}
 	}
 }
 
-// isEqual checks if two values are equal
+// isEqual checks if two values are equal using deep comparison
 func isEqual(a, b interface{}) bool {
 	if a == nil && b == nil {
 		return true
@@ -196,6 +216,13 @@ func isEqual(a, b interface{}) bool {
 	if a == nil || b == nil {
 		return false
 	}
+
+	// Для мапов используем глубокое сравнение
+	if isMap(a) && isMap(b) {
+		return reflect.DeepEqual(a, b)
+	}
+
+	// Для остальных типов используем обычное сравнение
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
@@ -224,29 +251,40 @@ func formatStylish(node *Node) string {
 	var result strings.Builder
 	result.WriteString("{\n")
 	formatStylishNode(node, &result, 1)
+	// Убираем лишний перенос строки, если нет дочерних элементов
+	if len(node.Children) > 0 {
+		result.WriteString("\n")
+	}
 	result.WriteString("}")
 	return result.String()
 }
 
 // formatStylishNode recursively formats a node in stylish format
 func formatStylishNode(node *Node, result *strings.Builder, depth int) {
-	indent := strings.Repeat("  ", depth)
+	// Базовый отступ: используем формулу depth*4-2
+	baseIndent := strings.Repeat(" ", depth*4-2)
 
-	for _, child := range node.Children {
+	for i, child := range node.Children {
 		switch child.Type {
 		case NodeTypeAdded:
-			fmt.Fprintf(result, "%s+ %s: %v\n", indent, child.Key, formatValue(child.NewValue))
+			fmt.Fprintf(result, "%s+ %s: %s", baseIndent, child.Key, formatValue(child.NewValue))
 		case NodeTypeRemoved:
-			fmt.Fprintf(result, "%s- %s: %v\n", indent, child.Key, formatValue(child.OldValue))
+			fmt.Fprintf(result, "%s- %s: %s", baseIndent, child.Key, formatValue(child.OldValue))
 		case NodeTypeUpdated:
-			fmt.Fprintf(result, "%s- %s: %v\n", indent, child.Key, formatValue(child.OldValue))
-			fmt.Fprintf(result, "%s+ %s: %v\n", indent, child.Key, formatValue(child.NewValue))
+			fmt.Fprintf(result, "%s- %s: %s\n%s+ %s: %s",
+				baseIndent, child.Key, formatValue(child.OldValue),
+				baseIndent, child.Key, formatValue(child.NewValue))
 		case NodeTypeUnchanged:
-			fmt.Fprintf(result, "%s  %s: %v\n", indent, child.Key, formatValue(child.Value))
+			fmt.Fprintf(result, "%s  %s: %s", baseIndent, child.Key, formatValue(child.Value))
 		case NodeTypeNested:
-			fmt.Fprintf(result, "%s  %s: {\n", indent, child.Key)
+			fmt.Fprintf(result, "%s  %s: {\n", baseIndent, child.Key)
 			formatStylishNode(child, result, depth+1)
-			fmt.Fprintf(result, "%s  }\n", indent)
+			fmt.Fprintf(result, "\n%s  }", baseIndent)
+		}
+
+		// Добавляем перенос строки между элементами, кроме последнего
+		if i < len(node.Children)-1 {
+			result.WriteString("\n")
 		}
 	}
 }
@@ -292,14 +330,88 @@ func formatValue(v interface{}) string {
 	if v == nil {
 		return "null"
 	}
+
 	switch val := v.(type) {
 	case string:
-		return fmt.Sprintf("%q", val)
+		// Убираем кавычки для строк в stylish формате
+		return val
 	case bool:
 		return fmt.Sprintf("%t", val)
+	case map[string]interface{}:
+		// Для вложенных объектов создаем простой вывод
+		return formatSimpleMap(val)
 	default:
 		return fmt.Sprintf("%v", val)
 	}
+}
+
+// formatSimpleMap formats a map with simple structure
+func formatSimpleMap(m map[string]interface{}) string {
+	if len(m) == 0 {
+		return "{}"
+	}
+
+	var result strings.Builder
+	result.WriteString("{\n")
+
+	// Сортируем ключи для детерминированного вывода
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	// Отступ для содержимого: используем формулу (depth+1)*4-2
+	contentIndent := strings.Repeat(" ", 6) // (1+1)*4-2 = 6
+	for i, key := range keys {
+		value := m[key]
+		if isMap(value) {
+			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), 1)))
+		} else {
+			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatValue(value)))
+		}
+		if i < len(keys)-1 {
+			result.WriteString("\n")
+		}
+	}
+
+	result.WriteString("\n    }")
+	return result.String()
+}
+
+// formatSimpleMapRecursive formats nested maps with proper indentation
+func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
+	if len(m) == 0 {
+		return "{}"
+	}
+
+	var result strings.Builder
+	result.WriteString("{\n")
+
+	// Сортируем ключи для детерминированного вывода
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	// Отступ для содержимого: используем формулу (depth+1)*4-2
+	contentIndent := strings.Repeat(" ", (depth+1)*4-2)
+	for i, key := range keys {
+		value := m[key]
+		if isMap(value) {
+			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), depth+1)))
+		} else {
+			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatValue(value)))
+		}
+		if i < len(keys)-1 {
+			result.WriteString("\n")
+		}
+	}
+
+	// Закрывающая скобка с правильным отступом
+	result.WriteString(fmt.Sprintf("\n%s}", strings.Repeat(" ", depth*4-2)))
+	return result.String()
 }
 
 // formatPlainValue formats a value for plain output

@@ -27,11 +27,11 @@ func TestGenDiff_JSON_Simple(t *testing.T) {
 
 	// Check that all expected changes are present
 	assert.Contains(t, result, "- follow: false")
-	assert.Contains(t, result, "- proxy: \"123.234.53.22\"")
+	assert.Contains(t, result, "- proxy: 123.234.53.22")
 	assert.Contains(t, result, "- timeout: 50")
 	assert.Contains(t, result, "+ timeout: 20")
 	assert.Contains(t, result, "+ verbose: true")
-	assert.Contains(t, result, "host: \"hexlet.io\"")
+	assert.Contains(t, result, "host: hexlet.io")
 
 	// Test plain format
 	result, err = GenDiff(file1, file2, "plain")
