@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 
@@ -22,7 +21,7 @@ const (
 	NullValue         = "null"
 )
 
-// Node represents a node in the diff tree
+// Node представляет узел в дереве различий
 type Node struct {
 	Type     string      `json:"type"`
 	Key      string      `json:"key,omitempty"`
@@ -32,24 +31,24 @@ type Node struct {
 	Children []*Node     `json:"children,omitempty"`
 }
 
-// GenDiff compares two configuration files and returns the difference as a string
+// GenDiff сравнивает два конфигурационных файла и возвращает различия в виде строки
 func GenDiff(filepath1, filepath2, format string) (string, error) {
-	// Read and parse first file
+	// Читаем и парсим первый файл
 	data1, err := parseFile(filepath1)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse %s: %w", filepath1, err)
 	}
 
-	// Read and parse second file
+	// Читаем и парсим второй файл
 	data2, err := parseFile(filepath2)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse %s: %w", filepath2, err)
 	}
 
-	// Build diff tree
+	// Строим дерево различий
 	diffTree := buildDiffTree(data1, data2)
 
-	// Format output according to specified format
+	// Форматируем вывод согласно указанному формату
 	result, err := formatDiff(diffTree, format)
 	if err != nil {
 		return "", fmt.Errorf("failed to format diff: %w", err)
@@ -58,27 +57,27 @@ func GenDiff(filepath1, filepath2, format string) (string, error) {
 	return result, nil
 }
 
-// parseFile reads and parses a file based on its extension
+// parseFile читает и парсит файл на основе его расширения
 func parseFile(filePath string) (map[string]interface{}, error) {
-	// Check if file exists
+	// Проверяем, существует ли файл
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("file not found: %s", filePath)
 	}
 
-	// Read file content
-	// nolint:gosec // We only read configuration files, not user input
+	// Читаем содержимое файла
+	// nolint:gosec // Мы читаем только конфигурационные файлы, а не пользовательский ввод
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
 	}
 
-	// Determine format by extension
+	// Определяем формат по расширению
 	ext := strings.ToLower(filepath.Ext(filePath))
 	if ext == "" {
 		return nil, fmt.Errorf("cannot determine file format for %s", filePath)
 	}
 
-	// Parse based on format
+	// Парсим в зависимости от формата
 	switch ext {
 	case ".json":
 		return parseJSON(content)
@@ -89,7 +88,7 @@ func parseFile(filePath string) (map[string]interface{}, error) {
 	}
 }
 
-// parseJSON parses JSON content
+// parseJSON парсит JSON содержимое
 func parseJSON(content []byte) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	if err := json.Unmarshal(content, &result); err != nil {
@@ -98,7 +97,7 @@ func parseJSON(content []byte) (map[string]interface{}, error) {
 	return result, nil
 }
 
-// parseYAML parses YAML content
+// parseYAML парсит YAML содержимое
 func parseYAML(content []byte) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	if err := yaml.Unmarshal(content, &result); err != nil {
@@ -107,11 +106,11 @@ func parseYAML(content []byte) (map[string]interface{}, error) {
 	return result, nil
 }
 
-// buildDiffTree builds a tree representing differences between two data structures
+// buildDiffTree строит дерево, представляющее различия между двумя структурами данных
 func buildDiffTree(data1, data2 map[string]interface{}) *Node {
 	root := &Node{Type: NodeTypeRoot, Children: []*Node{}}
 
-	// Get all unique keys
+	// Получаем все уникальные ключи
 	allKeys := make(map[string]bool)
 	for key := range data1 {
 		allKeys[key] = true
@@ -120,14 +119,14 @@ func buildDiffTree(data1, data2 map[string]interface{}) *Node {
 		allKeys[key] = true
 	}
 
-	// Sort keys for deterministic output
+	// Сортируем ключи для детерминированного вывода
 	keys := make([]string, 0, len(allKeys))
 	for key := range allKeys {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
 
-	// Process each key
+	// Обрабатываем каждый ключ
 	for _, key := range keys {
 		childNode := processKey(key, data1, data2)
 		if childNode != nil {
@@ -138,20 +137,20 @@ func buildDiffTree(data1, data2 map[string]interface{}) *Node {
 	return root
 }
 
-// processKey processes a single key and returns a node representing its state
+// processKey обрабатывает отдельный ключ и возвращает узел, представляющий его состояние
 func processKey(key string, data1, data2 map[string]interface{}) *Node {
 	value1, exists1 := data1[key]
 	value2, exists2 := data2[key]
 
 	if !exists1 && exists2 {
-		// Key was added
+		// Ключ был добавлен
 		return &Node{
 			Type:     NodeTypeAdded,
 			Key:      key,
 			NewValue: value2,
 		}
 	} else if exists1 && !exists2 {
-		// Key was removed
+		// Ключ был удален
 		return &Node{
 			Type:     NodeTypeRemoved,
 			Key:      key,
@@ -164,25 +163,25 @@ func processKey(key string, data1, data2 map[string]interface{}) *Node {
 	return nil
 }
 
-// processExistingKey processes a key that exists in both data structures
+// processExistingKey обрабатывает ключ, который существует в обеих структурах данных
 func processExistingKey(key string, value1, value2 interface{}) *Node {
 	if isEqual(value1, value2) {
-		// Values are equal
+		// Значения равны
 		return &Node{
 			Type:  NodeTypeUnchanged,
 			Key:   key,
 			Value: value1,
 		}
 	} else if isMap(value1) && isMap(value2) {
-		// Both values are maps, recurse
+		// Оба значения являются картами, рекурсивно обрабатываем
 		childNode := buildDiffTree(value1.(map[string]interface{}), value2.(map[string]interface{}))
 		childNode.Key = key
 		childNode.Type = NodeTypeNested
 		return childNode
 	} else {
-		// Values are different - check if one is map and other is not
+		// Значения различаются - проверяем, является ли одно картой, а другое нет
 		if isMap(value1) && !isMap(value2) {
-			// value1 is map, value2 is not - value1 was removed, value2 was added
+			// value1 это карта, value2 нет - value1 была удалена, value2 была добавлена
 			return &Node{
 				Type:     NodeTypeUpdated,
 				Key:      key,
@@ -190,7 +189,7 @@ func processExistingKey(key string, value1, value2 interface{}) *Node {
 				NewValue: value2,
 			}
 		} else if !isMap(value1) && isMap(value2) {
-			// value1 is not map, value2 is map - value1 was removed, value2 was added
+			// value1 не карта, value2 карта - value1 была удалена, value2 была добавлена
 			return &Node{
 				Type:     NodeTypeUpdated,
 				Key:      key,
@@ -198,7 +197,7 @@ func processExistingKey(key string, value1, value2 interface{}) *Node {
 				NewValue: value2,
 			}
 		} else {
-			// Both are primitive values, but different
+			// Оба значения примитивные, но разные
 			return &Node{
 				Type:     NodeTypeUpdated,
 				Key:      key,
@@ -209,7 +208,7 @@ func processExistingKey(key string, value1, value2 interface{}) *Node {
 	}
 }
 
-// isEqual checks if two values are equal using deep comparison
+// isEqual проверяет равенство двух значений с помощью глубокого сравнения
 func isEqual(a, b interface{}) bool {
 	if a == nil && b == nil {
 		return true
@@ -218,22 +217,45 @@ func isEqual(a, b interface{}) bool {
 		return false
 	}
 
-	// Для мапов используем глубокое сравнение
+	// Для мапов используем собственную функцию глубокого сравнения
 	if isMap(a) && isMap(b) {
-		return reflect.DeepEqual(a, b)
+		return mapsEqual(a.(map[string]interface{}), b.(map[string]interface{}))
 	}
 
 	// Для остальных типов используем обычное сравнение
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
-// isMap checks if a value is a map
+// mapsEqual рекурсивно сравнивает две карты на равенство
+func mapsEqual(a, b map[string]interface{}) bool {
+	// Если разное количество ключей, то карты не равны
+	if len(a) != len(b) {
+		return false
+	}
+
+	// Проверяем каждый ключ
+	for key, valueA := range a {
+		valueB, exists := b[key]
+		if !exists {
+			return false // Ключ отсутствует во второй карте
+		}
+
+		// Рекурсивно сравниваем значения
+		if !isEqual(valueA, valueB) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isMap проверяет, является ли значение картой
 func isMap(v interface{}) bool {
 	_, ok := v.(map[string]interface{})
 	return ok
 }
 
-// formatDiff formats the diff tree according to the specified format
+// formatDiff форматирует дерево различий согласно указанному формату
 func formatDiff(diffTree *Node, format string) (string, error) {
 	switch strings.ToLower(format) {
 	case "stylish":
@@ -247,7 +269,7 @@ func formatDiff(diffTree *Node, format string) (string, error) {
 	}
 }
 
-// formatStylish formats the diff in stylish format
+// formatStylish форматирует различия в stylish формате
 func formatStylish(node *Node) string {
 	var result strings.Builder
 	result.WriteString("{\n")
@@ -260,7 +282,7 @@ func formatStylish(node *Node) string {
 	return result.String()
 }
 
-// formatStylishNode recursively formats a node in stylish format
+// formatStylishNode рекурсивно форматирует узел в stylish формате
 func formatStylishNode(node *Node, result *strings.Builder, depth int) {
 	// Базовый отступ: используем формулу depth*4-2
 	baseIndent := strings.Repeat(" ", depth*4-2)
@@ -290,7 +312,7 @@ func formatStylishNode(node *Node, result *strings.Builder, depth int) {
 	}
 }
 
-// formatPlain formats the diff in plain format
+// formatPlain форматирует различия в plain формате
 func formatPlain(node *Node) string {
 	var result []string
 	formatPlainNode(node, &result, []string{})
@@ -298,7 +320,7 @@ func formatPlain(node *Node) string {
 	return strings.Join(result, "\n")
 }
 
-// formatPlainNode recursively formats a node in plain format
+// formatPlainNode рекурсивно форматирует узел в plain формате
 func formatPlainNode(node *Node, result *[]string, path []string) {
 	for _, child := range node.Children {
 		currentPath := append(path, child.Key)
@@ -317,7 +339,7 @@ func formatPlainNode(node *Node, result *[]string, path []string) {
 	}
 }
 
-// formatJSON formats the diff as JSON
+// formatJSON форматирует различия как JSON
 func formatJSON(node *Node) string {
 	jsonData, err := json.MarshalIndent(node, "", "  ")
 	if err != nil {
@@ -326,7 +348,7 @@ func formatJSON(node *Node) string {
 	return string(jsonData)
 }
 
-// formatValue formats a value for stylish output (for nested and unchanged nodes)
+// formatValue форматирует значение для stylish вывода (для вложенных и неизменённых узлов)
 func formatValue(v interface{}) string {
 	if v == nil {
 		return NullValue
@@ -346,7 +368,7 @@ func formatValue(v interface{}) string {
 	}
 }
 
-// formatValueForRemovedAdded formats a value for removed/added nodes
+// formatValueForRemovedAdded форматирует значение для удалённых/добавленных узлов
 func formatValueForRemovedAdded(v interface{}, depth int) string {
 	if v == nil {
 		return NullValue
@@ -366,7 +388,7 @@ func formatValueForRemovedAdded(v interface{}, depth int) string {
 	}
 }
 
-// formatNestedMap formats a map for nested objects in stylish format
+// formatNestedMap форматирует карту для вложенных объектов в stylish формате
 func formatNestedMap(m map[string]interface{}) string {
 	if len(m) == 0 {
 		return "{}"
@@ -401,7 +423,7 @@ func formatNestedMap(m map[string]interface{}) string {
 	return result.String()
 }
 
-// formatNestedMapRecursive formats nested maps with proper indentation for nested objects
+// formatNestedMapRecursive форматирует вложенные карты с правильными отступами для вложенных объектов
 func formatNestedMapRecursive(m map[string]interface{}, depth int) string {
 	if len(m) == 0 {
 		return "{}"
@@ -436,8 +458,8 @@ func formatNestedMapRecursive(m map[string]interface{}, depth int) string {
 	return result.String()
 }
 
-// formatSimpleMap formats a map with simple structure
-// formatSimpleMapWithDepth formats a map for removed/added nodes with depth consideration
+// formatSimpleMap форматирует карту с простой структурой
+// formatSimpleMapWithDepth форматирует карту для удалённых/добавленных узлов с учётом глубины
 func formatSimpleMapWithDepth(m map[string]interface{}, depth int) string {
 	if len(m) == 0 {
 		return "{}"
@@ -481,7 +503,7 @@ func formatSimpleMapWithDepth(m map[string]interface{}, depth int) string {
 	return result.String()
 }
 
-// formatSimpleMapRecursive formats nested maps with proper indentation
+// formatSimpleMapRecursive форматирует вложенные карты с правильными отступами
 func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 	if len(m) == 0 {
 		return "{}"
@@ -519,7 +541,7 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 	return result.String()
 }
 
-// formatPlainValue formats a value for plain output
+// formatPlainValue форматирует значение для plain вывода
 func formatPlainValue(v interface{}) string {
 	if v == nil {
 		return NullValue
