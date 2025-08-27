@@ -11,6 +11,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	NodeTypeRoot      = "root"
+	NodeTypeAdded     = "added"
+	NodeTypeRemoved   = "removed"
+	NodeTypeUpdated   = "updated"
+	NodeTypeUnchanged = "unchanged"
+	NodeTypeNested    = "nested"
+)
+
 // Node represents a node in the diff tree
 type Node struct {
 	Type     string      `json:"type"`
@@ -55,6 +64,7 @@ func parseFile(filePath string) (map[string]interface{}, error) {
 	}
 
 	// Read file content
+	// nolint:gosec // We only read configuration files, not user input
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
@@ -97,7 +107,7 @@ func parseYAML(content []byte) (map[string]interface{}, error) {
 
 // buildDiffTree builds a tree representing differences between two data structures
 func buildDiffTree(data1, data2 map[string]interface{}) *Node {
-	root := &Node{Type: "root", Children: []*Node{}}
+	root := &Node{Type: NodeTypeRoot, Children: []*Node{}}
 
 	// Get all unique keys
 	allKeys := make(map[string]bool)
@@ -117,50 +127,65 @@ func buildDiffTree(data1, data2 map[string]interface{}) *Node {
 
 	// Process each key
 	for _, key := range keys {
-		value1, exists1 := data1[key]
-		value2, exists2 := data2[key]
-
-		if !exists1 && exists2 {
-			// Key was added
-			root.Children = append(root.Children, &Node{
-				Type:     "added",
-				Key:      key,
-				NewValue: value2,
-			})
-		} else if exists1 && !exists2 {
-			// Key was removed
-			root.Children = append(root.Children, &Node{
-				Type:     "removed",
-				Key:      key,
-				OldValue: value1,
-			})
-		} else if exists1 && exists2 {
-			if isEqual(value1, value2) {
-				// Values are equal
-				root.Children = append(root.Children, &Node{
-					Type:  "unchanged",
-					Key:   key,
-					Value: value1,
-				})
-			} else if isMap(value1) && isMap(value2) {
-				// Both values are maps, recurse
-				childNode := buildDiffTree(value1.(map[string]interface{}), value2.(map[string]interface{}))
-				childNode.Key = key
-				childNode.Type = "nested"
-				root.Children = append(root.Children, childNode)
-			} else {
-				// Values are different
-				root.Children = append(root.Children, &Node{
-					Type:     "updated",
-					Key:      key,
-					OldValue: value1,
-					NewValue: value2,
-				})
-			}
+		childNode := processKey(key, data1, data2)
+		if childNode != nil {
+			root.Children = append(root.Children, childNode)
 		}
 	}
 
 	return root
+}
+
+// processKey processes a single key and returns a node representing its state
+func processKey(key string, data1, data2 map[string]interface{}) *Node {
+	value1, exists1 := data1[key]
+	value2, exists2 := data2[key]
+
+	if !exists1 && exists2 {
+		// Key was added
+		return &Node{
+			Type:     NodeTypeAdded,
+			Key:      key,
+			NewValue: value2,
+		}
+	} else if exists1 && !exists2 {
+		// Key was removed
+		return &Node{
+			Type:     NodeTypeRemoved,
+			Key:      key,
+			OldValue: value1,
+		}
+	} else if exists1 && exists2 {
+		return processExistingKey(key, value1, value2)
+	}
+
+	return nil
+}
+
+// processExistingKey processes a key that exists in both data structures
+func processExistingKey(key string, value1, value2 interface{}) *Node {
+	if isEqual(value1, value2) {
+		// Values are equal
+		return &Node{
+			Type:  NodeTypeUnchanged,
+			Key:   key,
+			Value: value1,
+		}
+	} else if isMap(value1) && isMap(value2) {
+		// Both values are maps, recurse
+		childNode := buildDiffTree(value1.(map[string]interface{}), value2.(map[string]interface{}))
+		childNode.Key = key
+		childNode.Type = NodeTypeNested
+		return childNode
+	} else {
+		// Values are different
+		return &Node{
+			Type:     NodeTypeUpdated,
+			Key:      key,
+			OldValue: value1,
+			NewValue: value2,
+		}
+	}
 }
 
 // isEqual checks if two values are equal
@@ -209,19 +234,19 @@ func formatStylishNode(node *Node, result *strings.Builder, depth int) {
 
 	for _, child := range node.Children {
 		switch child.Type {
-		case "added":
-			result.WriteString(fmt.Sprintf("%s+ %s: %v\n", indent, child.Key, formatValue(child.NewValue)))
-		case "removed":
-			result.WriteString(fmt.Sprintf("%s- %s: %v\n", indent, child.Key, formatValue(child.OldValue)))
-		case "updated":
-			result.WriteString(fmt.Sprintf("%s- %s: %v\n", indent, child.Key, formatValue(child.OldValue)))
-			result.WriteString(fmt.Sprintf("%s+ %s: %v\n", indent, child.Key, formatValue(child.NewValue)))
-		case "unchanged":
-			result.WriteString(fmt.Sprintf("%s  %s: %v\n", indent, child.Key, formatValue(child.Value)))
-		case "nested":
-			result.WriteString(fmt.Sprintf("%s  %s: {\n", indent, child.Key))
+		case NodeTypeAdded:
+			fmt.Fprintf(result, "%s+ %s: %v\n", indent, child.Key, formatValue(child.NewValue))
+		case NodeTypeRemoved:
+			fmt.Fprintf(result, "%s- %s: %v\n", indent, child.Key, formatValue(child.OldValue))
+		case NodeTypeUpdated:
+			fmt.Fprintf(result, "%s- %s: %v\n", indent, child.Key, formatValue(child.OldValue))
+			fmt.Fprintf(result, "%s+ %s: %v\n", indent, child.Key, formatValue(child.NewValue))
+		case NodeTypeUnchanged:
+			fmt.Fprintf(result, "%s  %s: %v\n", indent, child.Key, formatValue(child.Value))
+		case NodeTypeNested:
+			fmt.Fprintf(result, "%s  %s: {\n", indent, child.Key)
 			formatStylishNode(child, result, depth+1)
-			result.WriteString(fmt.Sprintf("%s  }\n", indent))
+			fmt.Fprintf(result, "%s  }\n", indent)
 		}
 	}
 }
@@ -241,13 +266,13 @@ func formatPlainNode(node *Node, result *[]string, path []string) {
 		pathStr := strings.Join(currentPath, ".")
 
 		switch child.Type {
-		case "added":
+		case NodeTypeAdded:
 			*result = append(*result, fmt.Sprintf("Property '%s' was added with value: %s", pathStr, formatPlainValue(child.NewValue)))
-		case "removed":
+		case NodeTypeRemoved:
 			*result = append(*result, fmt.Sprintf("Property '%s' was removed", pathStr))
-		case "updated":
+		case NodeTypeUpdated:
 			*result = append(*result, fmt.Sprintf("Property '%s' was updated. From %s to %s", pathStr, formatPlainValue(child.OldValue), formatPlainValue(child.NewValue)))
-		case "nested":
+		case NodeTypeNested:
 			formatPlainNode(child, result, currentPath)
 		}
 	}

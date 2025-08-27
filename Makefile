@@ -1,4 +1,9 @@
-.PHONY: build test lint run clean
+.PHONY: build test lint run clean setup
+
+setup:
+	@echo "Setting up project..."
+	go mod download
+	go mod tidy
 
 build:
 	@mkdir -p bin
