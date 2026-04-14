@@ -2,6 +2,7 @@ package main
 
 import (
 	"code"
+	"code/formatter"
 	"context"
 	"fmt"
 	"log"
@@ -18,7 +19,7 @@ func main() {
 			&cli.StringFlag{
 				Name:    "format",
 				Aliases: []string{"f"},
-				Value:   "stylish",
+				Value:   formatter.FormatStylish,
 				Usage:   "output format (default: \"stylish\")",
 			},
 		},
