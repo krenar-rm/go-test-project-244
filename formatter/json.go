@@ -41,8 +41,12 @@ func convertToJSON(node *diff.Node) jsonNode {
 	case diff.TypeRemoved:
 		jn.Value1 = &node.OldValue
 	case diff.TypeUpdated:
-		jn.Value1 = &node.OldValue
-		jn.Value2 = &node.NewValue
+		if node.OldValue != nil {
+			jn.Value1 = &node.OldValue
+		}
+		if node.NewValue != nil {
+			jn.Value2 = &node.NewValue
+		}
 	case diff.TypeRoot, diff.TypeNested:
 		if len(node.Children) > 0 {
 			jn.Children = make([]jsonNode, 0, len(node.Children))
