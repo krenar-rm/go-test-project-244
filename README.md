@@ -1,5 +1,7 @@
 # Gendiff
 
+[![asciicast](https://asciinema.org/a/lBR12XeBBYBa7MZy.svg)](https://asciinema.org/a/lBR12XeBBYBa7MZy)
+
 Утилита для сравнения двух конфигурационных файлов.
 
 Поддерживает JSON и YAML на вход. Форматы вывода: `stylish`, `plain`, `json`.
