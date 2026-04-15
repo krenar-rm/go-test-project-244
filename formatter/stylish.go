@@ -96,9 +96,9 @@ func formatNestedMap(m map[string]interface{}) string {
 	for i, key := range keys {
 		value := m[key]
 		if _, ok := value.(map[string]interface{}); ok {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatNestedMapRecursive(value.(map[string]interface{}), 3)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatNestedMapRecursive(value.(map[string]interface{}), 3))
 		} else {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatValue(value)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatValue(value))
 		}
 		if i < len(keys)-1 {
 			result.WriteString("\n")
@@ -123,16 +123,16 @@ func formatNestedMapRecursive(m map[string]interface{}, depth int) string {
 	for i, key := range keys {
 		value := m[key]
 		if _, ok := value.(map[string]interface{}); ok {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatNestedMapRecursive(value.(map[string]interface{}), depth+1)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatNestedMapRecursive(value.(map[string]interface{}), depth+1))
 		} else {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatValue(value)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatValue(value))
 		}
 		if i < len(keys)-1 {
 			result.WriteString("\n")
 		}
 	}
 
-	result.WriteString(fmt.Sprintf("\n%s}", strings.Repeat(" ", (depth-1)*4)))
+	fmt.Fprintf(&result, "\n%s}", strings.Repeat(" ", (depth-1)*4))
 	return result.String()
 }
 
@@ -159,16 +159,16 @@ func formatSimpleMapWithDepth(m map[string]interface{}, depth int) string {
 	for i, key := range keys {
 		value := m[key]
 		if _, ok := value.(map[string]interface{}); ok {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), depth+2)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), depth+2))
 		} else {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatValue(value)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatValue(value))
 		}
 		if i < len(keys)-1 {
 			result.WriteString("\n")
 		}
 	}
 
-	result.WriteString(fmt.Sprintf("\n%s}", closingIndent))
+	fmt.Fprintf(&result, "\n%s}", closingIndent)
 	return result.String()
 }
 
@@ -188,15 +188,15 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 	for i, key := range keys {
 		value := m[key]
 		if _, ok := value.(map[string]interface{}); ok {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), depth+1)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatSimpleMapRecursive(value.(map[string]interface{}), depth+1))
 		} else {
-			result.WriteString(fmt.Sprintf("%s%s: %s", contentIndent, key, formatValue(value)))
+			fmt.Fprintf(&result, "%s%s: %s", contentIndent, key, formatValue(value))
 		}
 		if i < len(keys)-1 {
 			result.WriteString("\n")
 		}
 	}
 
-	result.WriteString(fmt.Sprintf("\n%s}", closingIndent))
+	fmt.Fprintf(&result, "\n%s}", closingIndent)
 	return result.String()
 }
