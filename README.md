@@ -140,9 +140,13 @@ Property 'verbose' was added with value: true
 ```
 .
 ├── cmd/gendiff/          # CLI приложение
+├── parser/               # Парсинг JSON и YAML файлов
+├── diff/                 # Построение дерева различий
+├── formatter/            # Форматирование вывода (stylish, plain, json)
 ├── testdata/             # Тестовые фикстуры
-├── gendiff.go            # Основной код библиотеки
+├── gendiff.go            # Точка входа библиотеки
 ├── gendiff_test.go       # Тесты
+├── .goreleaser.yml       # Конфигурация GoReleaser
 ├── Makefile              # Команды сборки
 └── go.mod                # Файл Go модуля
 ```
