@@ -8,7 +8,10 @@ import (
 	"code/diff"
 )
 
-const nullValue = "null"
+const (
+	nullValue = "null"
+	indent    = "    "
+)
 
 func renderStylish(node *diff.Node) string {
 	var result strings.Builder
@@ -22,7 +25,7 @@ func renderStylish(node *diff.Node) string {
 }
 
 func renderStylishNode(node *diff.Node, result *strings.Builder, depth int) {
-	baseIndent := strings.Repeat(" ", depth*4-2)
+	baseIndent := strings.Repeat(indent, depth)[:depth*4-2]
 
 	for i, child := range node.Children {
 		switch child.Type {
@@ -93,7 +96,7 @@ func formatNestedMap(m map[string]interface{}) string {
 
 	keys := getSortedKeys(m)
 
-	contentIndent := "            "
+	contentIndent := strings.Repeat(indent, 3)
 	for i, key := range keys {
 		value := m[key]
 		if _, ok := value.(map[string]interface{}); ok {
@@ -106,7 +109,7 @@ func formatNestedMap(m map[string]interface{}) string {
 		}
 	}
 
-	result.WriteString("\n        }")
+	fmt.Fprintf(&result, "\n%s}", strings.Repeat(indent, 2))
 	return result.String()
 }
 
@@ -120,7 +123,7 @@ func formatNestedMapRecursive(m map[string]interface{}, depth int) string {
 
 	keys := getSortedKeys(m)
 
-	contentIndent := strings.Repeat(" ", depth*4)
+	contentIndent := strings.Repeat(indent, depth)
 	for i, key := range keys {
 		value := m[key]
 		if _, ok := value.(map[string]interface{}); ok {
@@ -133,7 +136,7 @@ func formatNestedMapRecursive(m map[string]interface{}, depth int) string {
 		}
 	}
 
-	fmt.Fprintf(&result, "\n%s}", strings.Repeat(" ", (depth-1)*4))
+	fmt.Fprintf(&result, "\n%s}", strings.Repeat(indent, depth-1))
 	return result.String()
 }
 
@@ -147,8 +150,8 @@ func formatSimpleMapWithDepth(m map[string]interface{}, depth int) string {
 
 	keys := getSortedKeys(m)
 
-	contentIndent := strings.Repeat(" ", (depth+1)*4)
-	closingIndent := strings.Repeat(" ", depth*4)
+	contentIndent := strings.Repeat(indent, depth+1)
+	closingIndent := strings.Repeat(indent, depth)
 
 	for i, key := range keys {
 		value := m[key]
@@ -176,8 +179,8 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 
 	keys := getSortedKeys(m)
 
-	contentIndent := strings.Repeat(" ", depth*4)
-	closingIndent := strings.Repeat(" ", (depth-1)*4)
+	contentIndent := strings.Repeat(indent, depth)
+	closingIndent := strings.Repeat(indent, depth-1)
 
 	for i, key := range keys {
 		value := m[key]
