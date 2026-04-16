@@ -1,5 +1,8 @@
 # Gendiff
 
+[![CI](https://github.com/krenar-rm/go-test-project-244/actions/workflows/ci.yml/badge.svg)](https://github.com/krenar-rm/go-test-project-244/actions/workflows/ci.yml)
+![Coverage](.github/badges/coverage.svg)
+
 [![asciicast](https://asciinema.org/a/lBR12XeBBYBa7MZy.svg)](https://asciinema.org/a/lBR12XeBBYBa7MZy)
 
 Утилита для сравнения двух конфигурационных файлов.
