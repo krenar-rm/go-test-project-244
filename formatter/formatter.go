@@ -2,7 +2,6 @@ package formatter
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"code/diff"
@@ -26,13 +25,4 @@ func Format(tree *diff.Node, format string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported format: %s", format)
 	}
-}
-
-func getSortedKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
 }

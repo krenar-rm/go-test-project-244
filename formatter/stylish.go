@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"code/diff"
@@ -199,4 +200,13 @@ func formatSimpleMapRecursive(m map[string]interface{}, depth int) string {
 
 	fmt.Fprintf(&result, "\n%s}", closingIndent)
 	return result.String()
+}
+
+func getSortedKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
