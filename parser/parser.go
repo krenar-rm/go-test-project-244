@@ -3,51 +3,38 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-// Parse читает и парсит файл на основе его расширения
-func Parse(filePath string) (map[string]interface{}, error) {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("file not found: %s", filePath)
-	}
+const (
+	FormatJSON = "json"
+	FormatYAML = "yaml"
+)
 
-	// nolint:gosec
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
-	}
-
-	ext := strings.ToLower(filepath.Ext(filePath))
-	if ext == "" {
-		return nil, fmt.Errorf("cannot determine file format for %s", filePath)
-	}
-
-	switch ext {
-	case ".json":
-		return parseJSON(content)
-	case ".yml", ".yaml":
-		return parseYAML(content)
+// Parse парсит данные в зависимости от указанного формата
+func Parse(data []byte, format string) (map[string]interface{}, error) {
+	switch format {
+	case FormatJSON:
+		return parseJSON(data)
+	case FormatYAML:
+		return parseYAML(data)
 	default:
-		return nil, fmt.Errorf("unsupported file format: %s", ext)
+		return nil, fmt.Errorf("unsupported format: %s", format)
 	}
 }
 
-func parseJSON(content []byte) (map[string]interface{}, error) {
+func parseJSON(data []byte) (map[string]interface{}, error) {
 	var result map[string]interface{}
-	if err := json.Unmarshal(content, &result); err != nil {
+	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 	return result, nil
 }
 
-func parseYAML(content []byte) (map[string]interface{}, error) {
+func parseYAML(data []byte) (map[string]interface{}, error) {
 	var result map[string]interface{}
-	if err := yaml.Unmarshal(content, &result); err != nil {
+	if err := yaml.Unmarshal(data, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 	return result, nil
