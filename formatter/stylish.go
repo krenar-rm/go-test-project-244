@@ -147,15 +147,8 @@ func formatSimpleMapWithDepth(m map[string]interface{}, depth int) string {
 
 	keys := getSortedKeys(m)
 
-	var contentIndent string
-	var closingIndent string
-	if depth == 1 {
-		contentIndent = "        "
-		closingIndent = "    "
-	} else {
-		contentIndent = "            "
-		closingIndent = "        "
-	}
+	contentIndent := strings.Repeat(" ", (depth+1)*4)
+	closingIndent := strings.Repeat(" ", depth*4)
 
 	for i, key := range keys {
 		value := m[key]
